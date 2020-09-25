@@ -1,0 +1,28 @@
+---
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+metadata:
+  name: mediawiki-eks-cluster
+  region: eu-central-1
+  version: "1.17"
+  tags:
+    'Name': 'mediawiki-eks-cluster'
+    'ProjectName': 'mediawiki'
+    'Owner': 'anuradha'
+
+availabilityZones: ["eu-central-1a", "eu-central-1b", "eu-central-1c"]
+
+managedNodeGroups:
+  - name: nodegroup
+    desiredCapacity: 1
+    ssh:
+      allow: true
+      publicKeyName: mediawiki-eks-cluster-publickey
+
+# To enable all of the control plane logs, uncomment below:
+# cloudWatch:
+#  clusterLogging:
+#    enableTypes: ["*"]
+
+secretsEncryption:
+  keyARN: ${MASTER_ARN}

@@ -1,0 +1,11 @@
+# Default values for our application
+# This is a yaml-formatted file
+# Declare variables to be passed into our templates. 
+
+# Release-wide values
+replicas: 2
+version: 'latest'
+
+#service specific values
+mediawiki:
+  image: mediawiki
