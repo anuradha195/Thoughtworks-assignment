@@ -1,0 +1,52 @@
+FROM php:7.0-fpm
+
+MAINTAINER anuradha.gunjute
+
+RUN apt-get -y update \
+    && apt-get install -y wget \
+    && apt-get install -y apt-utils \
+    && apt-get install -y curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN apt-get update && apt-get install -y gnupg
+
+RUN apt-get update && apt-get install -y apache2
+RUN docker-php-ext-install mysqli opcache mbstring
+RUN pecl install APCu-5.1.18
+RUN docker-php-ext-enable apcu
+
+RUN apt-get -y update && apt-get -y dist-upgrade && apt-get install -y mysql-server
+
+#Mediawiki setup
+ARG MEDIAWIKI_VERSION_MAJOR=1
+ARG MEDIAWIKI_VERSION_MINOR=34
+ARG MEDIAWIKI_VERSION_BUGFIX=4
+
+RUN curl -s -o /tmp/keys.txt https://www.mediawiki.org/keys/keys.txt && \
+    curl -s -o /tmp/mediawiki.tar.gz https://releases.wikimedia.org/mediawiki/$MEDIAWIKI_VERSION_MAJOR.$MEDIAWIKI_VERSION_MINOR/mediawiki-$MEDIAWIKI_VERSION_MAJOR.$MEDI
+AWIKI_VERSION_MINOR.$MEDIAWIKI_VERSION_BUGFIX.tar.gz && \
+    curl -s -o /tmp/mediawiki.tar.gz.sig https://releases.wikimedia.org/mediawiki/$MEDIAWIKI_VERSION_MAJOR.$MEDIAWIKI_VERSION_MINOR/mediawiki-$MEDIAWIKI_VERSION_MAJOR.$
+MEDIAWIKI_VERSION_MINOR.$MEDIAWIKI_VERSION_BUGFIX.tar.gz.sig && \
+    gpg --import /tmp/keys.txt && \
+    #gpg --list-keys --fingerprint --with-colons | sed -E -n -e 's/^fpr:::::::::([0-9A-F]+):$/\1:6:/p' | gpg --import-ownertrust && \
+    gpg --verify /tmp/mediawiki.tar.gz.sig /tmp/mediawiki.tar.gz && \
+    mkdir -p /var/www/mediawiki /data /images && \
+    tar -xzf /tmp/mediawiki.tar.gz -C /tmp && \
+    mv /tmp/mediawiki-$MEDIAWIKI_VERSION_MAJOR.$MEDIAWIKI_VERSION_MINOR.$MEDIAWIKI_VERSION_BUGFIX/* /var/www/mediawiki && \
+    rm -rf /tmp/mediawiki.tar.gz /tmp/mediawiki-$MEDIAWIKI_VERSION_MAJOR.$MEDIAWIKI_VERSION_MINOR.$MEDIAWIKI_VERSION_BUGFIX/ /tmp/keys.txt && \
+    rm -rf /var/www/mediawiki/images && \
+    ln -s /images /var/www/mediawiki/images && \
+    chown -R www-data:www-data /data /images /var/www/mediawiki/images
+
+RUN apt-get update && \
+    apt-get install vim && \
+    cd /etc/apache2/sites-available && \
+    sed -i -e 's/\html//g' default-ssl.conf && \
+    sed -i -e 's/\html//g' 000-default.conf && \
+    service apache2 restart
+
+# Set work dir
+WORKDIR /var/www/mediawiki
+
+EXPOSE 80
+CMD ["php-fpm"]
